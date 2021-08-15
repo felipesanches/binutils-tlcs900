@@ -1932,6 +1932,11 @@ enum bfd_architecture
 #define bfd_mach_ck807         6
 #define bfd_mach_ck810         7
 #define bfd_mach_ck860         8
+  bfd_arch_tlcs900,
+/* TOSIHBA TLCS900  */
+#define bfd_mach_tlcs900       1
+/* TOSIHBA TLCS900L  */
+#define bfd_mach_tlcs900l      2
   bfd_arch_last
   };
 
@@ -6144,6 +6149,31 @@ assembler and not (currently) written to any object files.  */
   BFD_RELOC_TILEGX_IMM8_X1_TLS_ADD,
   BFD_RELOC_TILEGX_IMM8_Y0_TLS_ADD,
   BFD_RELOC_TILEGX_IMM8_Y1_TLS_ADD,
+
+
+/* 8 bit signed offset in (ix+d) or (iy+d).  */
+  BFD_RELOC_TLCS900_DISP8,
+
+/* First 8 bits of multibyte (32, 24 or 16 bit) value.  */
+  BFD_RELOC_TLCS900_BYTE0,
+
+/* Second 8 bits of multibyte (32, 24 or 16 bit) value.  */
+  BFD_RELOC_TLCS900_BYTE1,
+
+/* Third 8 bits of multibyte (32 or 24 bit) value.  */
+  BFD_RELOC_TLCS900_BYTE2,
+
+/* Fourth 8 bits of multibyte (32 bit) value.  */
+  BFD_RELOC_TLCS900_BYTE3,
+
+/* Lowest 16 bits of multibyte (32 or 24 bit) value.  */
+  BFD_RELOC_TLCS900_WORD0,
+
+/* Highest 16 bits of multibyte (32 or 24 bit) value.  */
+  BFD_RELOC_TLCS900_WORD1,
+
+/* Like BFD_RELOC_16 but big-endian.  */
+  BFD_RELOC_TLCS900_16_BE,
 
 /* Linux eBPF relocations.  */
   BFD_RELOC_BPF_64,

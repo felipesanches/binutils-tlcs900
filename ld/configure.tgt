@@ -919,6 +919,8 @@ tilegxbe-*-*)		targ_emul=elf64tilegx_be
 			;;
 tilepro-*-*)		targ_emul=elf32tilepro
 			;;
+tlcs900-*-*)		targ_emul=elf32tlcs900
+			;;
 v850*-*-*)		targ_emul=v850_rh850
 			targ_extra_emuls=v850
 			;;

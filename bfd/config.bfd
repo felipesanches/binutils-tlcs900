@@ -218,6 +218,7 @@ sparc*)		 targ_archs=bfd_sparc_arch ;;
 spu*)            targ_archs=bfd_spu_arch ;;
 tilegx*)	 targ_archs=bfd_tilegx_arch ;;
 tilepro*)	 targ_archs=bfd_tilepro_arch ;;
+tlcs900*)	 targ_archs=bfd_tlcs900_arch ;;
 v850*)		 targ_archs="bfd_v850_arch bfd_v850_rh850_arch" ;;
 visium*)	 targ_archs=bfd_visium_arch ;;
 wasm32)		 targ_archs=bfd_wasm32_arch ;;
@@ -1349,6 +1350,16 @@ case "${targ}" in
 
   tilepro-*-*)
     targ_defvec=tilepro_elf32_vec
+    ;;
+
+  tlcs900-*-coff)
+    targ_defvec=tlcs900_coff_vec
+    targ_underscore=no
+    ;;
+
+  tlcs900-*-elf)
+    targ_defvec=tlcs900_elf32_vec
+    targ_underscore=no
     ;;
 
   ft32*-*-*)
