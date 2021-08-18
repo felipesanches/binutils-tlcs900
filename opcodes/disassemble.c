@@ -463,6 +463,11 @@ disassembler (enum bfd_architecture a,
       disassemble = print_insn_tic6x;
       break;
 #endif
+#ifdef ARCH_tlcs900
+    case bfd_arch_tlcs900:
+      disassemble = print_insn_tlcs900;
+      break;
+#endif
 #ifdef ARCH_ft32
     case bfd_arch_ft32:
       disassemble = print_insn_ft32;
