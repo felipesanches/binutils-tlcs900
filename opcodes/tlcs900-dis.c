@@ -30,7 +30,6 @@ struct buffer
   int n_used;
   signed char data[6];
   long inss; /* instruction set bit mask, taken from bfd_mach */
-  int nn_len; /* address length: 2 - Z80 mode, 3 - ADL mode*/
 } ;
 
 typedef int (*func)(struct buffer *, disassemble_info *, const char *);
@@ -68,12 +67,6 @@ static const char * cc_str[] = { "f", "lt", "le", "ule", "pe/ov", "m/mi", "z", "
 //} ;
 
 static int
-mach_inst (struct buffer *buf, const struct tab_elt *p)
-{
-  return !p->inss || (p->inss & buf->inss);
-}
-
-static int
 fetch_data (struct buffer *buf, disassemble_info * info, int n)
 {
   int r;
@@ -105,10 +98,10 @@ prt_nn (struct buffer *buf, disassemble_info * info, const char *txt)
   int i;
 
   p = (unsigned char*) buf->data + buf->n_fetch;
-  if (fetch_data (buf, info, buf->nn_len))
+  if (fetch_data (buf, info, 2))
     {
       nn = 0x00;
-      i = buf->nn_len;
+      i = 2;
       while (i--)
         nn = nn * 0x100 + p[i];
       info->fprintf_func (info->stream, txt, nn);
@@ -349,7 +342,7 @@ prt_regB (struct buffer *buf, disassemble_info *info,
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_reg; p->val != (buf->data[1] & p->mask) || !mach_inst (buf, p); ++p)
+      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p)
         ;
         {
           snprintf (mytxt,TXTSIZ, p->text, r_str[(buf->data[buf->n_fetch - 1] >> 3) & 7]);
@@ -371,7 +364,8 @@ prt_regW (struct buffer *buf, disassemble_info *info,
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_reg; p->val != (buf->data[1] & p->mask) || !mach_inst (buf, p); ++p)
+    
+      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p)
         ;
         {
           snprintf (mytxt,TXTSIZ, p->text, rr_str[(buf->data[buf->n_fetch - 1] >> 3) & 7]);
@@ -393,7 +387,7 @@ prt_regL (struct buffer *buf, disassemble_info *info,
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_reg; p->val != (buf->data[1] & p->mask) || !mach_inst (buf, p); ++p)
+      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p)
         ;
         {
           snprintf (mytxt,TXTSIZ, p->text, xrr_str[(buf->data[buf->n_fetch - 1] >> 3) & 7]);
@@ -414,21 +408,21 @@ static const struct tab_elt opc_dst[] =
 
 static int
 pref_dst (struct buffer *buf, disassemble_info *info,
-          const char *txt ATTRIBUTE_UNUSED)
+         const char *txt ATTRIBUTE_UNUSED)
 {
   const struct tab_elt *p;
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_dst; p->val != (buf->data[1] & p->mask) || !mach_inst (buf, p); ++p)
-        ;
-      p->fp (buf, info, p->text);
+      for (p = opc_dst; p->val != (buf->data[1] & p->mask); ++p) { }
+      if (p) p->fp (buf, info, p->text);
     }
   else
     buf->n_used = -1;
 
   return buf->n_used;
 }
+
 
 /* Table to disassemble machine codes without prefix.  */
 static const struct tab_elt
@@ -530,10 +524,7 @@ print_insn_tlcs900 (bfd_vma addr, disassemble_info * info)
   struct buffer buf;
 
   buf.base = addr;
-  buf.inss = 1 << info->mach;
-  buf.nn_len = 2;
-  info->bytes_per_line = 4; /* <ss pp oo nn mm MM> OR <pp oo nn mm> */
-
+  info->bytes_per_line = 4;
   return print_insn_tlcs900_buf (&buf, info);
 }
 
@@ -549,7 +540,7 @@ print_insn_tlcs900_buf (struct buffer *buf, disassemble_info *info)
 
   p = opc_main;
 
-  for (; p->val != (buf->data[0] & p->mask) || !mach_inst (buf, p); ++p)
+  for (; p->val != (buf->data[0] & p->mask); ++p)
     ;
   p->fp (buf, info, p->text);
 
