@@ -326,23 +326,43 @@ pop_rr (struct buffer *buf, disassemble_info * info, const char *txt)
 }
 
 static int
-prt_cc_n (struct buffer *buf, disassemble_info * info, const char *txt)
+prt_cc_n_offset (struct buffer *buf, disassemble_info * info, const char *txt)
 {
-  char mytxt[TXTSIZ];
+  int n;
+  int offset;
+  unsigned char *p = (unsigned char*) buf->data + buf->n_fetch;
 
-  snprintf (mytxt,TXTSIZ,
-	    "%s%s,0x%%04x", txt, cc_str[(buf->data[0] >> 3) & 7]);
-  return prt_n (buf, info, mytxt);
+  if (fetch_data (buf, info, 1))
+    {
+      offset = p[0];
+      n = buf->base + buf->n_fetch + offset;
+      info->fprintf_func (info->stream, txt, cc_str[p[-1] & 0xf], n);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+  return buf->n_used;
 }
 
 static int
-prt_cc_nn (struct buffer *buf, disassemble_info * info, const char *txt)
+prt_cc_nn_offset (struct buffer *buf, disassemble_info * info, const char *txt)
 {
-  char mytxt[TXTSIZ];
+  int n;
+  int offset;
+  unsigned char *p = (unsigned char*) buf->data + buf->n_fetch;
 
-  snprintf (mytxt,TXTSIZ,
-	    "%s%s,0x%%04x", txt, cc_str[(buf->data[0] >> 3) & 7]);
-  return prt_nn (buf, info, mytxt);
+  if (fetch_data (buf, info, 2))
+    {
+      offset = (p[0] | p[1]<<8);
+      n = buf->base + buf->n_fetch + offset;
+      info->fprintf_func (info->stream, txt, cc_str[p[-1] & 0xf], n);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+  return buf->n_used;
 }
 
 static int
@@ -630,94 +650,94 @@ prt_dst_nnn (struct buffer *buf, disassemble_info * info,
 static const struct tab_elt
 opc_main[] =
 {
-  { 0x00, 0xff, prt,          "nop", INSS_ALL },
-  { 0x01, 0xff, prt,          "normal", INSS_TLCS900 },
-  { 0x02, 0xff, prt,          "push sr", INSS_ALL },
-  { 0x03, 0xff, prt,          "pop sr", INSS_ALL },
-  { 0x04, 0xff, prt,          "max", INSS_TLCS900 },
-  { 0x04, 0xff, prt,          "min", INSS_TLCS900L }, /* TODO: review this one. */
-  { 0x05, 0xff, prt,          "halt", INSS_ALL },
-  { 0x06, 0xff, prt_n,        "ei 0x%02x", INSS_ALL },
-  { 0x07, 0xff, prt,          "reti", INSS_ALL },
-  { 0x08, 0xff, prt_n_n,      "ld (0x%02x), 0x%%02x", INSS_ALL },
-  { 0x09, 0xff, prt_n,        "push 0x%02x", INSS_ALL },
-  { 0x0a, 0xff, prt_n_nn,     "ld (0x%02x), 0x%%04x", INSS_ALL },
-  { 0x0b, 0xff, prt_nn,       "pushw 0x%%04x", INSS_ALL },
-  { 0x0c, 0xff, prt,          "incf", INSS_ALL },
-  { 0x0d, 0xff, prt,          "decf", INSS_ALL },
-  { 0x0e, 0xff, prt,          "ret", INSS_ALL },
-  { 0x0f, 0xff, prt_nn,       "retd 0x%%04x", INSS_ALL },
-  { 0x10, 0xff, prt,          "rcf", INSS_ALL },
-  { 0x11, 0xff, prt,          "scf", INSS_ALL },
-  { 0x12, 0xff, prt,          "ccf", INSS_ALL },
-  { 0x13, 0xff, prt,          "zcf", INSS_ALL },
-  { 0x14, 0xff, prt,          "push a", INSS_ALL },
-  { 0x15, 0xff, prt,          "pop a", INSS_ALL },
-  { 0x16, 0xff, prt,          "ex f, f'", INSS_ALL },
-  { 0x17, 0xff, prt_n,        "ldf 0x%02x", INSS_ALL },
-  { 0x18, 0xff, prt,          "push f", INSS_ALL },
-  { 0x19, 0xff, prt,          "pop f", INSS_ALL },
-  { 0x1a, 0xff, prt_nn,       "jp 0x%04x", INSS_ALL },
-  { 0x1b, 0xff, prt_nnn,      "jp 0x%06x", INSS_ALL },
-  { 0x1c, 0xff, prt_nn,       "call 0x%04x", INSS_ALL },
-  { 0x1d, 0xff, prt_nnn,      "call 0x%06x", INSS_ALL },
-  { 0x1e, 0xff, prt_nn_offset, "calr 0x%06x", INSS_ALL },
-  { 0x20, 0xf8, prt_r_n,       "ld %s, 0x%%02x", INSS_ALL },
-  { 0x28, 0xf8, prt_rr,        "push %s", INSS_ALL },
-  { 0x30, 0xf8, prt_rr_nn,     "ld %s, 0x%%04x", INSS_ALL },
-  { 0x38, 0xf8, prt_xrr,       "push %s", INSS_ALL },
-  { 0x40, 0xf8, prt_xrr_nnnn,  "ld %s, 0x%08x", INSS_ALL },
-  { 0x48, 0xf8, pop_rr,        "pop %s", INSS_ALL },
-  { 0x58, 0xf8, prt_xrr,       "pop %s", INSS_ALL },
-  { 0x60, 0xF0, prt_cc_n,      "jr %s, PC + 0x%02x", INSS_ALL },
-  { 0x70, 0xF0, prt_cc_nn,     "jrl %s, PC + 0x%04x", INSS_ALL },
-  { 0x80, 0xf8, prt_xrr,      "src.B (%s)", INSS_ALL },
-  { 0x88, 0xf8, prt_xrr_d,    "src.B (%s + d)", INSS_ALL },
-  { 0x90, 0xf8, prt_xrr,      "src.W (%s)", INSS_ALL },
-  { 0x98, 0xf8, prt_xrr_d,    "src.W (%s + d)", INSS_ALL },
-  { 0xa0, 0xf8, prt_xrr,      "src.L (%s)", INSS_ALL },
-  { 0xa8, 0xf8, prt_xrr_d,    "src.L (%s + d)", INSS_ALL },
-  { 0xb0, 0xf8, prt_xrr,      "dst (%s)", INSS_ALL },
-  { 0xb8, 0xf8, prt_xrr_d,    "dst (%s + d)", INSS_ALL },
-  { 0xc0, 0xff, prt_srcB_n,   "", INSS_ALL },
-  { 0xc1, 0xff, prt_srcB_nn,  "", INSS_ALL },
-  { 0xc2, 0xff, prt_srcB_nnn, "", INSS_ALL },
-  { 0xc3, 0xff, prt,          "C3", INSS_ALL },
-  { 0xc4, 0xff, prt,          "C4", INSS_ALL },
-  { 0xc5, 0xff, prt,          "C5", INSS_ALL },
-  { 0xc7, 0xff, prt,          "C7", INSS_ALL },
-  { 0xc8, 0xf8, prt_regB,     "", INSS_ALL },
-  { 0xd0, 0xff, prt,          "D0", INSS_ALL },
-  { 0xd1, 0xff, prt,          "D1", INSS_ALL },
-  { 0xd2, 0xff, prt,          "D2", INSS_ALL },
-  { 0xd3, 0xff, prt,          "D3", INSS_ALL },
-  { 0xd4, 0xff, prt,          "D4", INSS_ALL },
-  { 0xd5, 0xff, prt,          "D5", INSS_ALL },
-  { 0xd7, 0xff, prt,          "D7", INSS_ALL },
-  { 0xd8, 0xf8, prt_regW,     "", INSS_ALL },
-  { 0xe0, 0xff, prt,          "E0", INSS_ALL },
-  { 0xe1, 0xff, prt,          "E1", INSS_ALL },
-  { 0xe2, 0xff, prt,          "E2", INSS_ALL },
-  { 0xe3, 0xff, prt,          "E3", INSS_ALL },
-  { 0xe4, 0xff, prt,          "E4", INSS_ALL },
-  { 0xe5, 0xff, prt,          "E5", INSS_ALL },
-  { 0xe7, 0xff, prt,          "E7", INSS_ALL },
-  { 0xe8, 0xf8, prt_regL,     "", INSS_ALL },
-  { 0xf0, 0xff, prt_dst_n,    "", INSS_ALL },
-  { 0xf1, 0xff, prt_dst_nn,   "", INSS_ALL },
-  { 0xf2, 0xff, prt_dst_nnn,  "", INSS_ALL },
-  { 0xf3, 0xff, prt_dst,      "", INSS_ALL },
-  { 0xf4, 0xff, prt_dst,      "", INSS_ALL },
-  { 0xf5, 0xff, prt_dst,      "", INSS_ALL },
-  { 0xf7, 0xff, prt_n_n,      "ldx (0x%02x), 0x%02x", INSS_ALL },
-  { 0xf8, 0xff, prt,          "swi 0", INSS_ALL },
-  { 0xf9, 0xff, prt,          "swi 1", INSS_ALL },
-  { 0xfa, 0xff, prt,          "swi 2", INSS_ALL },
-  { 0xfb, 0xff, prt,          "swi 3", INSS_ALL },
-  { 0xfc, 0xff, prt,          "swi 4", INSS_ALL },
-  { 0xfd, 0xff, prt,          "swi 5", INSS_ALL },
-  { 0xfe, 0xff, prt,          "swi 6", INSS_ALL },
-  { 0xff, 0xff, prt,          "swi 7", INSS_ALL },
+  { 0x00, 0xff, prt,              "nop", INSS_ALL },
+  { 0x01, 0xff, prt,              "normal", INSS_TLCS900 },
+  { 0x02, 0xff, prt,              "push sr", INSS_ALL },
+  { 0x03, 0xff, prt,              "pop sr", INSS_ALL },
+  { 0x04, 0xff, prt,              "max", INSS_TLCS900 },
+  { 0x04, 0xff, prt,              "min", INSS_TLCS900L }, /* TODO: review this one. */
+  { 0x05, 0xff, prt,              "halt", INSS_ALL },
+  { 0x06, 0xff, prt_n,            "ei 0x%02x", INSS_ALL },
+  { 0x07, 0xff, prt,              "reti", INSS_ALL },
+  { 0x08, 0xff, prt_n_n,          "ld (0x%02x), 0x%%02x", INSS_ALL },
+  { 0x09, 0xff, prt_n,            "push 0x%02x", INSS_ALL },
+  { 0x0a, 0xff, prt_n_nn,         "ld (0x%02x), 0x%%04x", INSS_ALL },
+  { 0x0b, 0xff, prt_nn,           "pushw 0x%%04x", INSS_ALL },
+  { 0x0c, 0xff, prt,              "incf", INSS_ALL },
+  { 0x0d, 0xff, prt,              "decf", INSS_ALL },
+  { 0x0e, 0xff, prt,              "ret", INSS_ALL },
+  { 0x0f, 0xff, prt_nn,           "retd 0x%%04x", INSS_ALL },
+  { 0x10, 0xff, prt,              "rcf", INSS_ALL },
+  { 0x11, 0xff, prt,              "scf", INSS_ALL },
+  { 0x12, 0xff, prt,              "ccf", INSS_ALL },
+  { 0x13, 0xff, prt,              "zcf", INSS_ALL },
+  { 0x14, 0xff, prt,              "push a", INSS_ALL },
+  { 0x15, 0xff, prt,              "pop a", INSS_ALL },
+  { 0x16, 0xff, prt,              "ex f, f'", INSS_ALL },
+  { 0x17, 0xff, prt_n,            "ldf 0x%02x", INSS_ALL },
+  { 0x18, 0xff, prt,              "push f", INSS_ALL },
+  { 0x19, 0xff, prt,              "pop f", INSS_ALL },
+  { 0x1a, 0xff, prt_nn,           "jp 0x%04x", INSS_ALL },
+  { 0x1b, 0xff, prt_nnn,          "jp 0x%06x", INSS_ALL },
+  { 0x1c, 0xff, prt_nn,           "call 0x%04x", INSS_ALL },
+  { 0x1d, 0xff, prt_nnn,          "call 0x%06x", INSS_ALL },
+  { 0x1e, 0xff, prt_nn_offset,    "calr 0x%06x", INSS_ALL },
+  { 0x20, 0xf8, prt_r_n,          "ld %s, 0x%%02x", INSS_ALL },
+  { 0x28, 0xf8, prt_rr,           "push %s", INSS_ALL },
+  { 0x30, 0xf8, prt_rr_nn,        "ld %s, 0x%%04x", INSS_ALL },
+  { 0x38, 0xf8, prt_xrr,          "push %s", INSS_ALL },
+  { 0x40, 0xf8, prt_xrr_nnnn,     "ld %s, 0x%08x", INSS_ALL },
+  { 0x48, 0xf8, pop_rr,           "pop %s", INSS_ALL },
+  { 0x58, 0xf8, prt_xrr,          "pop %s", INSS_ALL },
+  { 0x60, 0xF0, prt_cc_n_offset,  "jr %s, 0x%06x", INSS_ALL },
+  { 0x70, 0xF0, prt_cc_nn_offset, "jrl %s, 0x%06x", INSS_ALL },
+  { 0x80, 0xf8, prt_xrr,          "src.B (%s)", INSS_ALL },
+  { 0x88, 0xf8, prt_xrr_d,        "src.B (%s + d)", INSS_ALL },
+  { 0x90, 0xf8, prt_xrr,          "src.W (%s)", INSS_ALL },
+  { 0x98, 0xf8, prt_xrr_d,        "src.W (%s + d)", INSS_ALL },
+  { 0xa0, 0xf8, prt_xrr,          "src.L (%s)", INSS_ALL },
+  { 0xa8, 0xf8, prt_xrr_d,        "src.L (%s + d)", INSS_ALL },
+  { 0xb0, 0xf8, prt_xrr,          "dst (%s)", INSS_ALL },
+  { 0xb8, 0xf8, prt_xrr_d,        "dst (%s + d)", INSS_ALL },
+  { 0xc0, 0xff, prt_srcB_n,       "", INSS_ALL },
+  { 0xc1, 0xff, prt_srcB_nn,      "", INSS_ALL },
+  { 0xc2, 0xff, prt_srcB_nnn,     "", INSS_ALL },
+  { 0xc3, 0xff, prt,              "C3", INSS_ALL },
+  { 0xc4, 0xff, prt,              "C4", INSS_ALL },
+  { 0xc5, 0xff, prt,              "C5", INSS_ALL },
+  { 0xc7, 0xff, prt,              "C7", INSS_ALL },
+  { 0xc8, 0xf8, prt_regB,         "", INSS_ALL },
+  { 0xd0, 0xff, prt,              "D0", INSS_ALL },
+  { 0xd1, 0xff, prt,              "D1", INSS_ALL },
+  { 0xd2, 0xff, prt,              "D2", INSS_ALL },
+  { 0xd3, 0xff, prt,              "D3", INSS_ALL },
+  { 0xd4, 0xff, prt,              "D4", INSS_ALL },
+  { 0xd5, 0xff, prt,              "D5", INSS_ALL },
+  { 0xd7, 0xff, prt,              "D7", INSS_ALL },
+  { 0xd8, 0xf8, prt_regW,         "", INSS_ALL },
+  { 0xe0, 0xff, prt,              "E0", INSS_ALL },
+  { 0xe1, 0xff, prt,              "E1", INSS_ALL },
+  { 0xe2, 0xff, prt,              "E2", INSS_ALL },
+  { 0xe3, 0xff, prt,              "E3", INSS_ALL },
+  { 0xe4, 0xff, prt,              "E4", INSS_ALL },
+  { 0xe5, 0xff, prt,              "E5", INSS_ALL },
+  { 0xe7, 0xff, prt,              "E7", INSS_ALL },
+  { 0xe8, 0xf8, prt_regL,         "", INSS_ALL },
+  { 0xf0, 0xff, prt_dst_n,        "", INSS_ALL },
+  { 0xf1, 0xff, prt_dst_nn,       "", INSS_ALL },
+  { 0xf2, 0xff, prt_dst_nnn,      "", INSS_ALL },
+  { 0xf3, 0xff, prt_dst,          "", INSS_ALL },
+  { 0xf4, 0xff, prt_dst,          "", INSS_ALL },
+  { 0xf5, 0xff, prt_dst,          "", INSS_ALL },
+  { 0xf7, 0xff, prt_n_n,          "ldx (0x%02x), 0x%02x", INSS_ALL },
+  { 0xf8, 0xff, prt,              "swi 0", INSS_ALL },
+  { 0xf9, 0xff, prt,              "swi 1", INSS_ALL },
+  { 0xfa, 0xff, prt,              "swi 2", INSS_ALL },
+  { 0xfb, 0xff, prt,              "swi 3", INSS_ALL },
+  { 0xfc, 0xff, prt,              "swi 4", INSS_ALL },
+  { 0xfd, 0xff, prt,              "swi 5", INSS_ALL },
+  { 0xfe, 0xff, prt,              "swi 6", INSS_ALL },
+  { 0xff, 0xff, prt,              "swi 7", INSS_ALL },
 } ;
 
 int
