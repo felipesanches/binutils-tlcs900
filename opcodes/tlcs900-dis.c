@@ -205,26 +205,6 @@ prt_n_n (struct buffer *buf, disassemble_info * info, const char *txt)
   return prt_n (buf, info, mytxt);
 }
 
-static int
-prt_dst_n (struct buffer *buf, disassemble_info * info, const char *txt)
-{
-  char mytxt[TXTSIZ];
-  int n;
-  unsigned char *p;
-
-  p = (unsigned char*) buf->data + buf->n_fetch;
-
-  if (fetch_data (buf, info, 1))
-    {
-      n = p[0];
-      snprintf (mytxt, TXTSIZ, txt, n);
-      buf->n_used = buf->n_fetch;
-    }
-  else
-    buf->n_used = -1;
-
-  return prt_n (buf, info, mytxt);
-}
 
 static int
 prt_n_nn (struct buffer *buf, disassemble_info * info, const char *txt)
@@ -403,24 +383,51 @@ prt_regL (struct buffer *buf, disassemble_info *info,
 /* Table to disassemble machine codes with prefix 'dst'.  */
 static const struct tab_elt opc_dst[] =
 {
-  { 0xF1, 0xFF, prt_dst_n,    "ld (%s), 0x%%02x", INSS_ALL },
+  { 0x00, 0xFF, prt_n, "ld (%s), 0x%%02x", INSS_ALL },
 };
 
 static int
-pref_dst (struct buffer *buf, disassemble_info *info,
-         const char *txt ATTRIBUTE_UNUSED)
+prt_dst (struct buffer *buf, disassemble_info *info,
+         const char *dst)
 {
   const struct tab_elt *p;
+  char mytxt[TXTSIZ];
+
+  unsigned char *ptr;
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_dst; p->val != (buf->data[1] & p->mask); ++p) { }
-      if (p) p->fp (buf, info, p->text);
+      ptr = (unsigned char*) buf->data + buf->n_fetch;
+      for (p = opc_dst; p->val != (ptr[0] & p->mask); ++p) { }
+      snprintf (mytxt,TXTSIZ, p->text, dst);
+      p->fp (buf, info, mytxt);
     }
   else
     buf->n_used = -1;
 
   return buf->n_used;
+}
+
+static int
+prt_dst_nn (struct buffer *buf, disassemble_info * info,
+            const char *txt ATTRIBUTE_UNUSED)
+{
+  char dst[TXTSIZ];
+  int nn;
+  unsigned char *p;
+
+  p = (unsigned char*) buf->data + buf->n_fetch;
+
+  if (fetch_data (buf, info, 2))
+    {
+      nn = (p[1] << 8) | p[0];
+      snprintf (dst, TXTSIZ, "0x%04x", nn);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+  return prt_dst (buf, info, dst);
 }
 
 
@@ -501,12 +508,12 @@ opc_main[] =
   { 0xe5, 0xff, prt,       "E5", INSS_ALL },
   { 0xe7, 0xff, prt,       "E7", INSS_ALL },
   { 0xe8, 0xf8, prt_regL,  "", INSS_ALL },
-  { 0xf0, 0xff, prt,       "F0", INSS_ALL },
-  { 0xf1, 0xff, pref_dst,  "pref_dst", INSS_ALL },
-  { 0xf2, 0xff, prt,       "F2", INSS_ALL },
-  { 0xf3, 0xff, prt,       "F3", INSS_ALL },
-  { 0xf4, 0xff, prt,       "F4", INSS_ALL },
-  { 0xf5, 0xff, prt,       "F5", INSS_ALL },
+  { 0xf0, 0xff, prt_dst,   "", INSS_ALL },
+  { 0xf1, 0xff, prt_dst_nn,"", INSS_ALL },
+  { 0xf2, 0xff, prt_dst,   "", INSS_ALL },
+  { 0xf3, 0xff, prt_dst,   "", INSS_ALL },
+  { 0xf4, 0xff, prt_dst,   "", INSS_ALL },
+  { 0xf5, 0xff, prt_dst,   "", INSS_ALL },
   { 0xf7, 0xff, prt_n_n,   "ldx (0x%02x), 0x%02x", INSS_ALL },
   { 0xf8, 0xff, prt,       "swi 0", INSS_ALL },
   { 0xf9, 0xff, prt,       "swi 1", INSS_ALL },
@@ -524,7 +531,7 @@ print_insn_tlcs900 (bfd_vma addr, disassemble_info * info)
   struct buffer buf;
 
   buf.base = addr;
-  info->bytes_per_line = 4;
+  info->bytes_per_line = 5;
   return print_insn_tlcs900_buf (&buf, info);
 }
 
