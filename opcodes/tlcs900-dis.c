@@ -129,7 +129,7 @@ prt_nnn (struct buffer *buf, disassemble_info * info, const char *txt)
 }
 
 static int
-prt_bit (struct buffer *buf, disassemble_info * info, const char *txt)
+prt_3bit (struct buffer *buf, disassemble_info * info, const char *txt)
 {
   int n;
   unsigned char *p;
@@ -224,9 +224,8 @@ prt_rr (struct buffer *buf, disassemble_info * info, const char *txt)
 static int
 prt_xrr (struct buffer *buf, disassemble_info * info, const char *txt)
 {
-//FIXME!!!
-  info->fprintf_func (info->stream, "%s%s", txt,
-		      xrr_str[(buf->data[buf->n_fetch - 1] >> 4) & 0xf]);
+  info->fprintf_func (info->stream, txt,
+		      xrr_str[(buf->data[buf->n_fetch - 1] >> 0) & 7]); //TODO: review this!
   buf->n_used = buf->n_fetch;
   return buf->n_used;
 }
@@ -377,6 +376,7 @@ print_insn_tlcs900 (bfd_vma addr, disassemble_info * info);
 static const struct tab_elt opc_reg[] =
 {
   { 0x1c, 0xff, prt_n_offset, "djnz %s, 0x%%06x", INSS_ALL },
+  { 0xa8, 0xf8, prt_3bit,     "ld %s, 0x%%02x", INSS_ALL },
   { 0xc8, 0xff, prt_n,        "add %s, 0x%%02x", INSS_ALL },
   { 0xc9, 0xff, prt_n,        "adc %s, 0x%%02x", INSS_ALL },
   { 0xca, 0xff, prt_n,        "sub %s, 0x%%02x", INSS_ALL },
@@ -547,17 +547,35 @@ prt_srcB_nnn (struct buffer *buf, disassemble_info * info,
 /* Table to disassemble machine codes with prefix 'dst'.  */
 static const struct tab_elt opc_dst[] =
 {
-  { 0x00, 0xFF, prt_n,   "ld (%s), 0x%%02x", INSS_ALL },
-  { 0x80, 0xF8, prt_bit, "andcf %%d, (%s)", INSS_ALL },
-  { 0x88, 0xF8, prt_bit, "orcf %%d, (%s)", INSS_ALL },
-  { 0x90, 0xF8, prt_bit, "xorcf %%d, (%s)", INSS_ALL },
-  { 0x98, 0xF8, prt_bit, "ldcf %%d, (%s)", INSS_ALL },
-  { 0xA0, 0xF8, prt_bit, "stcf %%d, (%s)", INSS_ALL },
-  { 0xA8, 0xF8, prt_bit, "tset %%d, (%s)", INSS_ALL },
-  { 0xB0, 0xF8, prt_bit, "res %%d, (%s)", INSS_ALL },
-  { 0xB8, 0xF8, prt_bit, "set %%d, (%s)", INSS_ALL },
-  { 0xC0, 0xF8, prt_bit, "chg %%d, (%s)", INSS_ALL },
-  { 0xC8, 0xF8, prt_bit, "bit %%d, (%s)", INSS_ALL },
+  { 0x00, 0xFF, prt_n,    "ld (%s), 0x%%02x", INSS_ALL },
+//TODO: { 0x02, 0xFF, prt_nn,    "ld (%s), 0x%%04x", INSS_ALL },
+//TODO: { 0x04, 0xFF, prt_?,    "pop.B (%s)", INSS_ALL },
+//TODO: { 0x06, 0xFF, prt_?,    "pop.W (%s)", INSS_ALL },
+//TODO: { 0x14, 0xFF, prt_?,    "ld.B (%s), (%s)", INSS_ALL },
+//TODO: { 0x16, 0xFF, prt_?,    "ld.W (%s), (%s)", INSS_ALL },
+//TODO: { 0x20, 0xF8, prt_?,    "lda r.W, %s", INSS_ALL },
+//TODO: { 0x28, 0xFF, prt_?,    "andcf a, (%s)", INSS_ALL },
+//TODO: { 0x29, 0xFF, prt_?,    "orcf a, (%s)", INSS_ALL },
+//TODO: { 0x2a, 0xFF, prt_?,    "xorcf a, (%s)", INSS_ALL },
+//TODO: { 0x2b, 0xFF, prt_?,    "ldcf a, (%s)", INSS_ALL },
+//TODO: { 0x2c, 0xFF, prt_?,    "stcf.B a, (%s)", INSS_ALL },
+//TODO: { 0x30, 0xF8, prt_?,    "lda r.L, %s", INSS_ALL },
+//TODO: { 0x40, 0xF8, prt_?,    "lda r.L, %s", INSS_ALL },
+//TODO: { 0x50, 0xF8, prt_?,    "lda r.L, %s", INSS_ALL },
+  { 0x60, 0xF8, prt_xrr,    "ld (%s), %%s", INSS_ALL },
+  { 0x80, 0xF8, prt_3bit, "andcf %%d, (%s)", INSS_ALL },
+  { 0x88, 0xF8, prt_3bit, "orcf %%d, (%s)", INSS_ALL },
+  { 0x90, 0xF8, prt_3bit, "xorcf %%d, (%s)", INSS_ALL },
+  { 0x98, 0xF8, prt_3bit, "ldcf %%d, (%s)", INSS_ALL },
+  { 0xA0, 0xF8, prt_3bit, "stcf %%d, (%s)", INSS_ALL },
+  { 0xA8, 0xF8, prt_3bit, "tset %%d, (%s)", INSS_ALL },
+  { 0xB0, 0xF8, prt_3bit, "res %%d, (%s)", INSS_ALL },
+  { 0xB8, 0xF8, prt_3bit, "set %%d, (%s)", INSS_ALL },
+  { 0xC0, 0xF8, prt_3bit, "chg %%d, (%s)", INSS_ALL },
+  { 0xC8, 0xF8, prt_3bit, "bit %%d, (%s)", INSS_ALL },
+//TODO: { 0xD0, 0xF0, prt_?,    "jp cc, %s", INSS_ALL },
+//TODO: { 0xE0, 0xF0, prt_?,    "call cc, %s", INSS_ALL },
+//TODO: { 0xF0, 0xF0, prt_?,    "ret cc", INSS_ALL },
 };
 
 static int
@@ -662,11 +680,11 @@ opc_main[] =
   { 0x08, 0xff, prt_n_n,          "ld (0x%02x), 0x%%02x", INSS_ALL },
   { 0x09, 0xff, prt_n,            "push 0x%02x", INSS_ALL },
   { 0x0a, 0xff, prt_n_nn,         "ld (0x%02x), 0x%%04x", INSS_ALL },
-  { 0x0b, 0xff, prt_nn,           "pushw 0x%%04x", INSS_ALL },
+  { 0x0b, 0xff, prt_nn,           "pushw 0x%04x", INSS_ALL },
   { 0x0c, 0xff, prt,              "incf", INSS_ALL },
   { 0x0d, 0xff, prt,              "decf", INSS_ALL },
   { 0x0e, 0xff, prt,              "ret", INSS_ALL },
-  { 0x0f, 0xff, prt_nn,           "retd 0x%%04x", INSS_ALL },
+  { 0x0f, 0xff, prt_nn,           "retd 0x%04x", INSS_ALL },
   { 0x10, 0xff, prt,              "rcf", INSS_ALL },
   { 0x11, 0xff, prt,              "scf", INSS_ALL },
   { 0x12, 0xff, prt,              "ccf", INSS_ALL },
