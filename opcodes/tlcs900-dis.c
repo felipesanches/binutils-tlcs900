@@ -60,12 +60,6 @@ static const char * xrr_str[] = { "xwa", "xbc", "xde", "xhl", "xix", "xiy", "xiz
 static const char * cc_str[] = { "f", "lt", "le", "ule", "pe/ov", "m/mi", "z", "c",
                                  "(t)", "ge", "gt", "ugt", "po/nov", "p/pl", "nz", "nc" };
 
-/* Instruction names for 8-bit arithmetic, operand "a" is often implicit */
-//static const char * arit_str[] =
-//{
-//  "add a,", "adc a,", "sub ", "sbc a,", "and ", "xor ", "or ", "cp "
-//} ;
-
 static int
 fetch_data (struct buffer *buf, disassemble_info * info, int n)
 {
@@ -113,6 +107,28 @@ prt_nn (struct buffer *buf, disassemble_info * info, const char *txt)
 }
 
 static int
+prt_nnn (struct buffer *buf, disassemble_info * info, const char *txt)
+{
+  int nnn;
+  unsigned char *p;
+  int i;
+
+  p = (unsigned char*) buf->data + buf->n_fetch;
+  if (fetch_data (buf, info, 3))
+    {
+      nnn = 0x00;
+      i = 3;
+      while (i--)
+        nnn = nnn * 0x100 + p[i];
+      info->fprintf_func (info->stream, txt, nnn);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+  return buf->n_used;
+}
+
+static int
 prt_bit (struct buffer *buf, disassemble_info * info, const char *txt)
 {
   int n;
@@ -146,6 +162,43 @@ prt_n (struct buffer *buf, disassemble_info * info, const char *txt)
   return buf->n_used;
 }
 
+static int
+prt_n_offset (struct buffer *buf, disassemble_info * info, const char *txt)
+{
+  int n;
+  char *p = (char*) buf->data + buf->n_fetch;
+
+  if (fetch_data (buf, info, 1))
+    {
+      n = buf->base + buf->n_fetch + p[0];
+      info->fprintf_func (info->stream, txt, n);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+  return buf->n_used;
+}
+
+static int
+prt_nn_offset (struct buffer *buf, disassemble_info * info, const char *txt)
+{
+  int n;
+  int offset;
+  unsigned char *p = (unsigned char*) buf->data + buf->n_fetch;
+
+  if (fetch_data (buf, info, 2))
+    {
+      offset = (p[0] | p[1]<<8);
+      n = buf->base + buf->n_fetch + offset;
+      info->fprintf_func (info->stream, txt, n);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+  return buf->n_used;
+}
 
 static int
 prt_rr_nn (struct buffer *buf, disassemble_info * info, const char *txt)
@@ -179,12 +232,21 @@ prt_xrr (struct buffer *buf, disassemble_info * info, const char *txt)
 }
 
 static int
-prt_xrr_nnn (struct buffer *buf, disassemble_info * info, const char *txt)
+prt_xrr_nnnn (struct buffer *buf, disassemble_info * info, const char *txt)
 {
-//FIXME!!!
-  info->fprintf_func (info->stream, "%s%s", txt,
-		      rr_str[(buf->data[buf->n_fetch - 1] >> 4) & 3]);
-  buf->n_used = buf->n_fetch;
+  unsigned char *p = (unsigned char*) buf->data + buf->n_fetch;
+
+  if (fetch_data (buf, info, 4))
+    {
+      info->fprintf_func (info->stream, txt,
+                          xrr_str[p[-1] & 7],
+                          (p[3] << 24) | (p[2] << 16) | (p[1] << 8) | p[0]);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+
   return buf->n_used;
 }
 
@@ -242,28 +304,6 @@ prt_n_nn (struct buffer *buf, disassemble_info * info, const char *txt)
 }
 
 static int
-prt_nnn (struct buffer *buf, disassemble_info * info, const char *txt)
-{
-// FIXME!!!!!
-  char mytxt[TXTSIZ];
-  int n;
-  unsigned char *p;
-
-  p = (unsigned char*) buf->data + buf->n_fetch;
-
-  if (fetch_data (buf, info, 1))
-    {
-      n = p[0];
-      snprintf (mytxt, TXTSIZ, txt, n);
-      buf->n_used = buf->n_fetch;
-    }
-  else
-    buf->n_used = -1;
-
-  return prt_n (buf, info, mytxt);
-}
-
-static int
 prt_r_n (struct buffer *buf, disassemble_info * info, const char *txt)
 {
   char mytxt[TXTSIZ];
@@ -316,15 +356,15 @@ print_insn_tlcs900 (bfd_vma addr, disassemble_info * info);
 /* Table to disassemble machine codes with reg.  */
 static const struct tab_elt opc_reg[] =
 {
-  { 0x1c, 0xff, prt_n,    "djnz %s, PC + 0x%%02x", INSS_ALL },
-  { 0xc8, 0xff, prt_n,    "add %s, 0x%%02x", INSS_ALL },
-  { 0xc9, 0xff, prt_n,    "adc %s, 0x%%02x", INSS_ALL },
-  { 0xca, 0xff, prt_n,    "sub %s, 0x%%02x", INSS_ALL },
-  { 0xcb, 0xff, prt_n,    "sbc %s, 0x%%02x", INSS_ALL },
-  { 0xcc, 0xff, prt_n,    "and %s, 0x%%02x", INSS_ALL },
-  { 0xcd, 0xff, prt_n,    "xor %s, 0x%%02x", INSS_ALL },
-  { 0xce, 0xff, prt_n,    "or %s, 0x%%02x", INSS_ALL },
-  { 0xcf, 0xff, prt_n,    "cp %s, 0x%%02x", INSS_ALL },
+  { 0x1c, 0xff, prt_n_offset, "djnz %s, 0x%%06x", INSS_ALL },
+  { 0xc8, 0xff, prt_n,        "add %s, 0x%%02x", INSS_ALL },
+  { 0xc9, 0xff, prt_n,        "adc %s, 0x%%02x", INSS_ALL },
+  { 0xca, 0xff, prt_n,        "sub %s, 0x%%02x", INSS_ALL },
+  { 0xcb, 0xff, prt_n,        "sbc %s, 0x%%02x", INSS_ALL },
+  { 0xcc, 0xff, prt_n,        "and %s, 0x%%02x", INSS_ALL },
+  { 0xcd, 0xff, prt_n,        "xor %s, 0x%%02x", INSS_ALL },
+  { 0xce, 0xff, prt_n,        "or %s, 0x%%02x", INSS_ALL },
+  { 0xcf, 0xff, prt_n,        "cp %s, 0x%%02x", INSS_ALL },
 };
 
 static int
@@ -336,12 +376,9 @@ prt_regB (struct buffer *buf, disassemble_info *info,
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p)
-        ;
-        {
-          snprintf (mytxt,TXTSIZ, p->text, r_str[(buf->data[buf->n_fetch - 1] >> 3) & 7]);
-          p->fp (buf, info, mytxt);
-        }
+      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p) { }
+      snprintf (mytxt,TXTSIZ, p->text, r_str[buf->data[buf->n_fetch - 1] & 7]);
+      p->fp (buf, info, mytxt);
     }
   else
     buf->n_used = -1;
@@ -358,13 +395,9 @@ prt_regW (struct buffer *buf, disassemble_info *info,
 
   if (fetch_data (buf, info, 1))
     {
-    
-      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p)
-        ;
-        {
-          snprintf (mytxt,TXTSIZ, p->text, rr_str[(buf->data[buf->n_fetch - 1] >> 3) & 7]);
-          p->fp (buf, info, mytxt);
-        }
+      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p) { }
+      snprintf (mytxt,TXTSIZ, p->text, rr_str[buf->data[buf->n_fetch - 1] & 7]);
+      p->fp (buf, info, mytxt);
     }
   else
     buf->n_used = -1;
@@ -381,12 +414,9 @@ prt_regL (struct buffer *buf, disassemble_info *info,
 
   if (fetch_data (buf, info, 1))
     {
-      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p)
-        ;
-        {
-          snprintf (mytxt,TXTSIZ, p->text, xrr_str[(buf->data[buf->n_fetch - 1] >> 3) & 7]);
-          p->fp (buf, info, mytxt);
-        }
+      for (p = opc_reg; p->val != (buf->data[1] & p->mask); ++p) { }
+      snprintf (mytxt,TXTSIZ, p->text, xrr_str[buf->data[buf->n_fetch - 1] & 7]);
+      p->fp (buf, info, mytxt);
     }
   else
     buf->n_used = -1;
@@ -631,16 +661,16 @@ opc_main[] =
   { 0x1b, 0xff, prt_nnn,      "jp 0x%06x", INSS_ALL },
   { 0x1c, 0xff, prt_nn,       "call 0x%04x", INSS_ALL },
   { 0x1d, 0xff, prt_nnn,      "call 0x%06x", INSS_ALL },
-  { 0x1e, 0xff, prt_nn,       "calr PC + 0x%04x", INSS_ALL },
-  { 0x20, 0xf8, prt_r_n,      "ld %s, 0x%%02x", INSS_ALL },
-  { 0x28, 0xf8, prt_rr,       "push %s", INSS_ALL },
-  { 0x30, 0xf8, prt_rr_nn,    "ld %s, 0x%%04x", INSS_ALL },
-  { 0x38, 0xf8, prt_xrr,      "push %s", INSS_ALL },
-  { 0x40, 0xf8, prt_xrr_nnn,  "ld %s, 0x%%06x", INSS_ALL },
-  { 0x48, 0xf8, pop_rr,       "pop %s", INSS_ALL },
-  { 0x58, 0xf8, prt_xrr,      "pop %s", INSS_ALL },
-  { 0x60, 0xF0, prt_cc_n,     "jr %s, PC + 0x%02x", INSS_ALL },
-  { 0x70, 0xF0, prt_cc_nn,    "jrl %s, PC + 0x%04x", INSS_ALL },
+  { 0x1e, 0xff, prt_nn_offset, "calr 0x%06x", INSS_ALL },
+  { 0x20, 0xf8, prt_r_n,       "ld %s, 0x%%02x", INSS_ALL },
+  { 0x28, 0xf8, prt_rr,        "push %s", INSS_ALL },
+  { 0x30, 0xf8, prt_rr_nn,     "ld %s, 0x%%04x", INSS_ALL },
+  { 0x38, 0xf8, prt_xrr,       "push %s", INSS_ALL },
+  { 0x40, 0xf8, prt_xrr_nnnn,  "ld %s, 0x%08x", INSS_ALL },
+  { 0x48, 0xf8, pop_rr,        "pop %s", INSS_ALL },
+  { 0x58, 0xf8, prt_xrr,       "pop %s", INSS_ALL },
+  { 0x60, 0xF0, prt_cc_n,      "jr %s, PC + 0x%02x", INSS_ALL },
+  { 0x70, 0xF0, prt_cc_nn,     "jrl %s, PC + 0x%04x", INSS_ALL },
   { 0x80, 0xf8, prt_xrr,      "src.B (%s)", INSS_ALL },
   { 0x88, 0xf8, prt_xrr_d,    "src.B (%s + d)", INSS_ALL },
   { 0x90, 0xf8, prt_xrr,      "src.W (%s)", INSS_ALL },
