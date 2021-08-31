@@ -343,6 +343,18 @@ pop_rr (struct buffer *buf, disassemble_info * info, const char *txt)
 }
 
 static int
+prt_cc (struct buffer *buf, disassemble_info * info, const char *txt)
+{
+  unsigned char *p = (unsigned char*) buf->data + buf->n_fetch;
+
+  info->fprintf_func (info->stream, txt, cc_str[p[-1] & 0xf]);
+  buf->n_used = buf->n_fetch;
+
+  return buf->n_used;
+}
+
+
+static int
 prt_cc_n_offset (struct buffer *buf, disassemble_info * info, const char *txt)
 {
   int n;
@@ -403,6 +415,8 @@ static const struct tab_elt opc_reg[] =
   { 0xcd, 0xff, prt_n,        "xor %s, 0x%%02x", INSS_ALL },
   { 0xce, 0xff, prt_n,        "or %s, 0x%%02x", INSS_ALL },
   { 0xcf, 0xff, prt_n,        "cp %s, 0x%%02x", INSS_ALL },
+//TODO  { 0xd0, 0xf8, prt_?,        "xor %%s, %s", INSS_ALL },
+  { 0xd8, 0xf8, prt_3bit,     "cp %s, %%d", INSS_ALL },
 //TODO  { 0xe0, 0xf8, prt_?,        "or %%s, %s", INSS_ALL },
   { 0xe8, 0xff, prt_n,        "rlc 0x%%02x, %s", INSS_ALL },
   { 0xe9, 0xff, prt_n,        "rrc 0x%%02x, %s", INSS_ALL },
@@ -721,9 +735,9 @@ static const struct tab_elt opc_dst[] =
   { 0xB8, 0xF8, prt_3bit, "set %%d, (%s)", INSS_ALL },
   { 0xC0, 0xF8, prt_3bit, "chg %%d, (%s)", INSS_ALL },
   { 0xC8, 0xF8, prt_3bit, "bit %%d, (%s)", INSS_ALL },
-//TODO: { 0xD0, 0xF0, prt_?,    "jp cc, %s", INSS_ALL },
-//TODO: { 0xE0, 0xF0, prt_?,    "call cc, %s", INSS_ALL },
-//TODO: { 0xF0, 0xF0, prt_?,    "ret cc", INSS_ALL },
+  { 0xD0, 0xF0, prt_cc,   "jp %%s, %s", INSS_ALL },
+  { 0xE0, 0xF0, prt_cc,   "call %%s, %s", INSS_ALL },
+  { 0xF0, 0xF0, prt_cc,   "ret %%s", INSS_ALL },
 };
 
 static int
