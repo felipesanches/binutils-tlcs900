@@ -28,7 +28,7 @@ struct buffer
   bfd_vma base;
   int n_fetch;
   int n_used;
-  signed char data[6];
+  signed char data[8];
   long inss; /* instruction set bit mask, taken from bfd_mach */
 } ;
 
@@ -422,7 +422,59 @@ static const struct tab_elt opc_reg[] =
   //TODO: { 0x16, 0xff, prt_,         "mirr %s", INSS_ALL },
   //TODO: { 0x19, 0xff, prt_,         "mula %s", INSS_ALL },
   { 0x1c, 0xff, prt_n_offset, "djnz %s, 0x%%06x", INSS_ALL },
+  //TODO: { 0x20, 0xff, prt_?,         "andcf ?, %s", INSS_ALL },
+  //TODO: { 0x21, 0xff, prt_?,         "orcf ?, %s", INSS_ALL },
+  //TODO: { 0x22, 0xff, prt_?,         "xorcf ?, %s", INSS_ALL },
+  //TODO: { 0x23, 0xff, prt_?,         "ldcf ?, %s", INSS_ALL },
+  //TODO: { 0x24, 0xff, prt_?,         "stcf ?, %s", INSS_ALL },
+  //TODO: { 0x28, 0xff, prt_?,         "andcf a, %s", INSS_ALL },
+  //TODO: { 0x29, 0xff, prt_?,         "orcf a, %s", INSS_ALL },
+  //TODO: { 0x2a, 0xff, prt_?,         "xorcf a, %s", INSS_ALL },
+  //TODO: { 0x2b, 0xff, prt_?,         "ldcf a, %s", INSS_ALL },
+  //TODO: { 0x2c, 0xff, prt_?,         "stcf a, %s", INSS_ALL },
+  //TODO: { 0x2e, 0xff, prt_?,         "ldc cr, %s", INSS_ALL },
+  //TODO: { 0x2f, 0xff, prt_?,         "ldc %s, cr", INSS_ALL },
+  //TODO: { 0x30, 0xff, prt_?,         "res ?, %s", INSS_ALL },
+  //TODO: { 0x31, 0xff, prt_?,         "set ?, %s", INSS_ALL },
+  //TODO: { 0x32, 0xff, prt_?,         "chg ?, %s", INSS_ALL },
+  //TODO: { 0x33, 0xff, prt_?,         "bit ?, %s", INSS_ALL },
+  //TODO: { 0x34, 0xff, prt_?,         "tset ?, %s", INSS_ALL },
+  //TODO: { 0x38, 0xff, prt_?,         "minc1 ?, %s", INSS_ALL },
+  //TODO: { 0x39, 0xff, prt_?,         "minc2 ?, %s", INSS_ALL },
+  //TODO: { 0x3a, 0xff, prt_?,         "minc4 ?, %s", INSS_ALL },
+  //TODO: { 0x3c, 0xff, prt_?,         "mdec1 ?, %s", INSS_ALL },
+  //TODO: { 0x3d, 0xff, prt_?,         "mdec2 ?, %s", INSS_ALL },
+  //TODO: { 0x3e, 0xff, prt_?,         "mdec4 ?, %s", INSS_ALL },
+  //TODO: { 0x40, 0xf8, prt_?,         "mul R, %s", INSS_ALL },
+  //TODO: { 0x48, 0xf8, prt_?,         "muls R, %s", INSS_ALL },
+  //TODO: { 0x50, 0xf8, prt_?,         "div R, %s", INSS_ALL },
+  //TODO: { 0x58, 0xf8, prt_?,         "divs R, %s", INSS_ALL },
+  { 0x60, 0xff, prt_,         "inc 8, %s", INSS_ALL },
+  { 0x61, 0xff, prt_,         "inc 1, %s", INSS_ALL },
+  { 0x62, 0xff, prt_,         "inc 2, %s", INSS_ALL },
+  { 0x63, 0xff, prt_,         "inc 3, %s", INSS_ALL },
+  { 0x64, 0xff, prt_,         "inc 4, %s", INSS_ALL },
+  { 0x65, 0xff, prt_,         "inc 5, %s", INSS_ALL },
+  { 0x66, 0xff, prt_,         "inc 6, %s", INSS_ALL },
+  { 0x67, 0xff, prt_,         "inc 7, %s", INSS_ALL },
+  { 0x68, 0xff, prt_,         "dec 8, %s", INSS_ALL },
+  { 0x69, 0xff, prt_,         "dec 1, %s", INSS_ALL },
+  { 0x6a, 0xff, prt_,         "dec 2, %s", INSS_ALL },
+  { 0x6b, 0xff, prt_,         "dec 3, %s", INSS_ALL },
+  { 0x6c, 0xff, prt_,         "dec 4, %s", INSS_ALL },
+  { 0x6d, 0xff, prt_,         "dec 5, %s", INSS_ALL },
+  { 0x6e, 0xff, prt_,         "dec 6, %s", INSS_ALL },
+  { 0x6f, 0xff, prt_,         "dec 7, %s", INSS_ALL },
+//TODO  { 0x70 ...
+//TODO  { 0x80, 0xf8, prt_?,        "add %%s, %s", INSS_ALL },
+//TODO  { 0x88, 0xf8, prt_?,        "ld %%s, %s", INSS_ALL },
+//TODO  { 0x90, 0xf8, prt_?,        "adc %%s, %s", INSS_ALL },
+//TODO  { 0x98, 0xf8, prt_?,        "ld %s, %%s", INSS_ALL },
+//TODO  { 0xa0, 0xf8, prt_?,        "sub %%s, %s", INSS_ALL },
   { 0xa8, 0xf8, prt_3bit,     "ld %s, 0x%%02x", INSS_ALL },
+//TODO  { 0xb0, 0xf8, prt_?,        "sbc %%s, %s", INSS_ALL },
+//TODO  { 0xb8, 0xf8, prt_?,        "ex %%s, %s", INSS_ALL },
+//TODO  { 0xc0, 0xf8, prt_?,        "and %%s, %s", INSS_ALL },
   { 0xc8, 0xff, prt_n,        "add %s, 0x%%02x", INSS_ALL },
   { 0xc9, 0xff, prt_n,        "adc %s, 0x%%02x", INSS_ALL },
   { 0xca, 0xff, prt_n,        "sub %s, 0x%%02x", INSS_ALL },
@@ -561,8 +613,7 @@ static const struct tab_elt opc_srcW[] =
   { 0x3c, 0xFF, prt_nn, "and (%s), 0x%%04x", INSS_ALL },
   { 0x3d, 0xFF, prt_nn, "xor (%s), 0x%%04x", INSS_ALL },
   { 0x3e, 0xFF, prt_nn, "or (%s), 0x%%04x", INSS_ALL },
-  { 0x3f, 0xFF, prt_n, "cp (%s), 0x%%02x", INSS_ALL }, //FIXME!
-//FIXME! { 0x3f, 0xFF, prt_nn, "cp (%s), 0x%%04x", INSS_ALL },
+  { 0x3f, 0xFF, prt_nn, "cp (%s), 0x%%04x", INSS_ALL },
 };
 
 static int
