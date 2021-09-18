@@ -7,5 +7,4 @@ ef071f: cp hl, 0xffff              |  cp hl, 0xff	           | 1: ff
 ef072a: ldw (0x0404), (XIZ+0x0100) |  d3                           | 6: f9 (00 01) 19 (04 04)
 ef0731: ld xwa, xiz                |  Segmentation fault           | 2: ee 88
 f0733:	add xwa, 0x00000100        |  add xwa, 0x00                | 3: 01 00 00
-f079b:	scc c, a                   |  Segmentation fault           | 2: C9 77
 
