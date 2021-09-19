@@ -937,6 +937,24 @@ prt_dst_xrr (struct buffer *buf, disassemble_info * info,
 }
 
 static int
+prt_dst_xrr_plus (struct buffer *buf, disassemble_info * info,
+                  const char *txt ATTRIBUTE_UNUSED)
+{
+  char dst[TXTSIZ];
+  unsigned char *p = (unsigned char*) buf->data + buf->n_fetch;
+
+  if (fetch_data (buf, info, 1))
+    {
+      snprintf (dst, TXTSIZ, "%s+", xrr_str[(p[0]>>2) & 7]);
+      buf->n_used = buf->n_fetch;
+    }
+  else
+    buf->n_used = -1;
+
+  return prt_dst (buf, info, dst);
+}
+
+static int
 prt_dst_n (struct buffer *buf, disassemble_info * info,
            const char *txt ATTRIBUTE_UNUSED)
 {
@@ -1085,9 +1103,9 @@ opc_main[] =
   { 0xf0, 0xff, prt_dst_n,        "", INSS_ALL },
   { 0xf1, 0xff, prt_dst_nn,       "", INSS_ALL },
   { 0xf2, 0xff, prt_dst_nnn,      "", INSS_ALL },
-  { 0xf3, 0xff, prt_dst,          "", INSS_ALL },
-  { 0xf4, 0xff, prt_dst,          "", INSS_ALL },
-  { 0xf5, 0xff, prt_dst,          "", INSS_ALL },
+  { 0xf3, 0xff, prt,              "TODO: F3", INSS_ALL },
+  { 0xf4, 0xff, prt,              "TODO: F4", INSS_ALL },
+  { 0xf5, 0xff, prt_dst_xrr_plus, "", INSS_ALL },
  // 0xf6, 0xff: invalid
   { 0xf7, 0xff, prt_n_n,          "ldx (0x%02x), 0x%02x", INSS_ALL },
   { 0xf8, 0xff, prt,              "swi 0", INSS_ALL },

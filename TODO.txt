@@ -2,7 +2,7 @@ Using as a reference the MAME debugger and the system ROM of the Technics KN5000
 these are the addresses with instructions currently incorrectly disassembled by binutils:
 
         EXPECTED DECODING          |  INCORRECT OUTPUT   | USED BYTES | UNUSED BYTES
-ef0698: cp XIZ, 0x00002000         |  cp XIZ, 0x00       | EE CF 00   | 20 00 00
+ef0698: cp xiz, 0x00002000         |  cp xiz, 0x00       | EE CF 00   | 20 00 00
 ef069e: jr c, 0x0f0796             |  jr c, 0x0f0696     | 67 F6      | --
 ef071f: cp hl, 0xffff              |  cp hl, 0xff	 | DB CF FF   | FF
 ef072a: ldw (0x0404), (XIZ+0x0100) |  TODO: D3           | D3         | F9 (00 01) 19 (04 04)
@@ -10,4 +10,4 @@ ef0731: ld xwa, xiz                |  Segmentation fault | --         | EE 88
 ef0733:	add xwa, 0x00000100        |  add xwa, 0x00      | E8 C8 00   | 01 00 00
 ef07b4:	ld c,(xbc+hl)              |  TODO: C3           | C3         | C9 77
 ef0806:	calr 0xef0656              |  calr 0x100656      | 1E 4D FE   | -- 
-ef0810:	ld (xbc+), xwa             |  call z,            | F5 E6      | 60
+ef0813: cp xbc, 0x00100000         |  cp xbc, 0x00       | E9 CF 00   | 00 10 00
